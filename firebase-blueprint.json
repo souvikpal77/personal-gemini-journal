@@ -1,0 +1,30 @@
+{
+  "entities": {
+    "UserInteraction": {
+      "collectionPath": "users/{userId}/interactions",
+      "fields": {
+        "id": { "type": "string", "description": "Unique interaction session ID" },
+        "userId": { "type": "string", "description": "Owner Firebase UID" },
+        "title": { "type": "string", "description": "Journal title or brief topic" },
+        "summary": { "type": "string", "description": "Gemini-generated reflection summary" },
+        "mood": { "type": "string", "description": "Optional user mood or tone tag" },
+        "messages": {
+          "type": "array",
+          "description": "Conversation message turns between user and Gemini",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "role": { "type": "string" },
+              "content": { "type": "string" },
+              "timestamp": { "type": "string" }
+            }
+          }
+        },
+        "tags": { "type": "array", "description": "Tags or topics", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "description": "ISO timestamp of creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      }
+    }
+  }
+}
