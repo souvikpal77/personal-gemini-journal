@@ -31,13 +31,26 @@ export const db = firebaseConfig.firestoreDatabaseId
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
   : getFirestore(app);
 
-export const signInWithGoogle = async (): Promise<User> => {
+export const signInWithGoogle = async (): Promise<User | null> => {
   try {
     googleProvider.setCustomParameters({ prompt: 'select_account' });
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error: any) {
-    console.error('Firebase Auth error:', error?.message || error);
+    const errorCode = error?.code || '';
+    const errorMsg = error?.message || '';
+    if (
+      errorCode === 'auth/popup-closed-by-user' ||
+      errorCode === 'auth/cancelled-popup-request' ||
+      errorCode === 'auth/user-cancelled' ||
+      errorCode === 'auth/popup-blocked' ||
+      errorMsg.includes('popup-closed-by-user') ||
+      errorMsg.includes('cancelled-popup-request')
+    ) {
+      // User closed the popup window voluntarily or opened another popup request
+      return null;
+    }
+    console.error('Firebase Auth error:', errorMsg || error);
     throw error;
   }
 };

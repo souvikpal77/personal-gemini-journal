@@ -6,7 +6,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 // Parse incoming JSON requests with safe limits
 app.use(express.json({ limit: '2mb' }));

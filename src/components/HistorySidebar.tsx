@@ -43,6 +43,7 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
   const [selectedMoodFilter, setSelectedMoodFilter] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitleText, setEditTitleText] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -62,6 +63,7 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
     e.stopPropagation();
     setEditingId(session.id);
     setEditTitleText(session.title);
+    setConfirmDeleteId(null);
   };
 
   const handleSaveEdit = async (sessionId: string, e: React.MouseEvent | React.FormEvent) => {
@@ -73,16 +75,26 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
     setEditingId(null);
   };
 
-  const handleDelete = async (sessionId: string, e: React.MouseEvent) => {
+  const handlePromptDelete = (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to permanently delete this journal entry from your Firestore?')) {
-      setDeletingId(sessionId);
-      try {
-        await onDeleteSession(sessionId);
-      } finally {
-        setDeletingId(null);
-      }
+    setConfirmDeleteId(sessionId);
+    setEditingId(null);
+  };
+
+  const handleConfirmDelete = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeletingId(sessionId);
+    try {
+      await onDeleteSession(sessionId);
+    } finally {
+      setDeletingId(null);
+      setConfirmDeleteId(null);
     }
+  };
+
+  const handleCancelDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConfirmDeleteId(null);
   };
 
   const formatDate = (isoString: string) => {
@@ -255,23 +267,43 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
 
                     {/* Action buttons */}
                     <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
-                      {!isEditing && (
-                        <button
-                          onClick={(e) => handleStartEdit(session, e)}
-                          className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-                          title="Rename title"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
+                      {confirmDeleteId === session.id ? (
+                        <div className="flex items-center gap-1 bg-rose-950/90 border border-rose-500/50 rounded-lg px-1.5 py-0.5" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-[10px] text-rose-200 font-medium">Delete?</span>
+                          <button
+                            onClick={(e) => handleConfirmDelete(session.id, e)}
+                            disabled={deletingId === session.id}
+                            className="px-1.5 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold transition-colors"
+                          >
+                            {deletingId === session.id ? '...' : 'Yes'}
+                          </button>
+                          <button
+                            onClick={handleCancelDelete}
+                            className="px-1 py-0.5 rounded text-slate-300 hover:text-white text-[10px] transition-colors"
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          {!isEditing && (
+                            <button
+                              onClick={(e) => handleStartEdit(session, e)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                              title="Rename title"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => handlePromptDelete(session.id, e)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-white/10 transition-colors"
+                            title="Delete from Firestore"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
                       )}
-                      <button
-                        onClick={(e) => handleDelete(session.id, e)}
-                        disabled={deletingId === session.id}
-                        className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-white/10 transition-colors"
-                        title="Delete from Firestore"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
                   </div>
 

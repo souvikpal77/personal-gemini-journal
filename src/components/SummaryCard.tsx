@@ -19,11 +19,26 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
 }) => {
   const [copied, setCopied] = React.useState(false);
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     const textToCopy = `JOURNAL SUMMARY:\n${summary}\n\nKEY TAKEAWAY:\n${insights?.keyTakeaway || 'N/A'}\n\nEMOTIONAL THEME:\n${insights?.emotionalTheme || 'N/A'}\n\nACTION ITEMS:\n${insights?.actionItems?.map(i => `- ${i}`).join('\n') || 'None'}`;
-    navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(textToCopy);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = textToCopy;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn('Copy failed:', err);
+    }
   };
 
   return (

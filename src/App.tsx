@@ -104,10 +104,28 @@ export default function App() {
     try {
       setAuthLoading(true);
       setAuthError(null);
-      await signInWithGoogle();
+      const signedInUser = await signInWithGoogle();
+      if (!signedInUser) {
+        // Sign-in popup was closed by user or cancelled; cleanly reset loading state
+        setAuthLoading(false);
+        return;
+      }
     } catch (err: any) {
+      const errorCode = err?.code || '';
+      const errorMsg = err?.message || '';
+      if (
+        errorCode === 'auth/popup-closed-by-user' ||
+        errorCode === 'auth/cancelled-popup-request' ||
+        errorCode === 'auth/user-cancelled' ||
+        errorCode === 'auth/popup-blocked' ||
+        errorMsg.includes('popup-closed-by-user') ||
+        errorMsg.includes('cancelled-popup-request')
+      ) {
+        setAuthLoading(false);
+        return;
+      }
       console.error('Sign in failed:', err);
-      setAuthError(err?.message || 'Google sign-in was cancelled or encountered an issue. Please try again.');
+      setAuthError(err?.message || 'Google sign-in encountered an issue. Please try again.');
       setAuthLoading(false);
     }
   };
@@ -181,20 +199,25 @@ export default function App() {
 
       // 2. Persist to Firestore under `users/{userId}/interactions/{interactionId}`
       setIsSavingToDb(true);
-      await saveJournalSession(user.uid, finalSession);
+      try {
+        await saveJournalSession(user.uid, finalSession);
 
-      // Update in local sessions list
-      setSessions((prev) => {
-        const existingIdx = prev.findIndex((s) => s.id === finalSession.id);
-        if (existingIdx >= 0) {
-          const copy = [...prev];
-          copy[existingIdx] = finalSession;
-          return copy;
-        }
-        return [finalSession, ...prev];
-      });
+        // Update in local sessions list
+        setSessions((prev) => {
+          const existingIdx = prev.findIndex((s) => s.id === finalSession.id);
+          if (existingIdx >= 0) {
+            const copy = [...prev];
+            copy[existingIdx] = finalSession;
+            return copy;
+          }
+          return [finalSession, ...prev];
+        });
 
-      setLastUserPrompt(null);
+        setLastUserPrompt(null);
+      } catch (dbErr: any) {
+        console.error('Firestore save failed:', dbErr);
+        setError('Your reflection was generated, but saving to Cloud Firestore failed. Please verify your connection.');
+      }
     } catch (err: any) {
       console.error('Error during AI reflection turn:', err);
       setError(err?.message || 'Could not complete reflection with Gemini AI. Your text is preserved.');
@@ -235,12 +258,17 @@ export default function App() {
 
       // Persist summary to Firestore
       setIsSavingToDb(true);
-      await saveJournalSession(user.uid, updatedSession);
+      try {
+        await saveJournalSession(user.uid, updatedSession);
 
-      // Update sessions list
-      setSessions((prev) =>
-        prev.map((s) => (s.id === updatedSession.id ? updatedSession : s))
-      );
+        // Update sessions list
+        setSessions((prev) =>
+          prev.map((s) => (s.id === updatedSession.id ? updatedSession : s))
+        );
+      } catch (dbErr: any) {
+        console.error('Firestore summary save failed:', dbErr);
+        setError('Summary was synthesized, but saving to Cloud Firestore encountered an issue.');
+      }
     } catch (err: any) {
       console.error('Error generating summary:', err);
       setError(err?.message || 'Failed to synthesize summary. Please try again.');
