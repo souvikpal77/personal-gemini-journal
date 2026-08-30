@@ -22,12 +22,22 @@ import {
 import type { JournalSession } from '../types';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+// Initialize Firebase App using the provisioned firebase-applet-config.json
+const app = getApps().length > 0 ? getApp() : initializeApp({
+  apiKey: firebaseConfig.apiKey,
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
+  messagingSenderId: firebaseConfig.messagingSenderId,
+  appId: firebaseConfig.appId,
+  ...(firebaseConfig.measurementId ? { measurementId: firebaseConfig.measurementId } : {})
+});
+
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Connect to the specific named database or default
-export const db = firebaseConfig.firestoreDatabaseId 
+// Connect to the specific named Firestore database
+export const db = firebaseConfig.firestoreDatabaseId
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
   : getFirestore(app);
 
